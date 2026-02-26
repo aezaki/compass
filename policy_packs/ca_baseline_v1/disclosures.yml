@@ -1,0 +1,15 @@
+disclosures:
+  PerformanceClaims:
+    - id: "DISC_PERF_NOT_GUARANTEED"
+      title: "Past performance"
+      text: "Past performance is not indicative of future results. Returns are not guaranteed."
+
+  InterestRateClaims:
+    - id: "DISC_RATE_VARIES"
+      title: "Rates may change"
+      text: "Rates are variable and may change at any time."
+
+  SafetyClaims:
+    - id: "DISC_RISK_EXISTS"
+      title: "Risk disclosure"
+      text: "All investing involves risk, including the possible loss of principal."

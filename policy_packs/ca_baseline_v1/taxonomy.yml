@@ -1,0 +1,11 @@
+tags:
+  ProhibitedClaims:
+    description: "Claims that are prohibited or highly likely to be non-compliant."
+  PerformanceClaims:
+    description: "Claims about returns, performance, or outcomes."
+  InterestRateClaims:
+    description: "Claims about interest rates or yields."
+  SafetyClaims:
+    description: "Claims implying safety, security, or lack of risk."
+  Superlatives:
+    description: "Unqualified best-in-class claims."

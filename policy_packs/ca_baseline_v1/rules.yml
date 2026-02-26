@@ -1,0 +1,31 @@
+version: "1.0"
+jurisdiction: "CA"
+
+risk_thresholds:
+  high: 70
+  medium: 35
+
+prohibited_terms:
+  - "guaranteed"
+  - "risk-free"
+  - "zero risk"
+  - "no risk"
+  - "always profits"
+  - "never lose"
+
+risky_terms:
+  - term: "returns"
+    weight: 15
+    tag: "PerformanceClaims"
+  - term: "interest"
+    weight: 10
+    tag: "InterestRateClaims"
+  - term: "safe"
+    weight: 10
+    tag: "SafetyClaims"
+  - term: "secure"
+    weight: 10
+    tag: "SafetyClaims"
+  - term: "best"
+    weight: 8
+    tag: "Superlatives"
