@@ -16,6 +16,8 @@ from fastapi import APIRouter, HTTPException
 from .models import AssessRequest, AssessResponse
 from .assessor import assess_text
 from .db import save_assessment, list_recent_assessments, get_assessment_response
+from .models import ReviewDecisionRequest, ReviewDecision
+from .db import assessment_exists, save_review_decision, list_review_decisions
 
 router = APIRouter()
 
@@ -82,3 +84,34 @@ def assessment_by_id(assessment_id: str):
     if payload is None:
         raise HTTPException(status_code=404, detail="Assessment not found")
     return payload
+
+@router.post("/v1/assessments/{assessment_id}/decision", response_model=ReviewDecision)
+def record_decision(assessment_id: str, req: ReviewDecisionRequest):
+    """
+    Record a human approval or rejection for an assessment.
+
+    This is the accountability boundary:
+    AI can recommend, but a human owns release decisions in high risk cases.
+    """
+    if not assessment_exists(assessment_id):
+        raise HTTPException(status_code=404, detail="Assessment not found")
+
+    record = save_review_decision(
+        assessment_id=assessment_id,
+        decision=req.decision,
+        reviewer=req.reviewer,
+        notes=req.notes,
+    )
+    return record
+
+
+@router.get("/v1/assessments/{assessment_id}/decisions")
+def get_decisions(assessment_id: str, limit: int = 20):
+    """
+    Retrieve review decision history for an assessment.
+    """
+    if not assessment_exists(assessment_id):
+        raise HTTPException(status_code=404, detail="Assessment not found")
+
+    items = list_review_decisions(assessment_id, limit=limit)
+    return {"count": len(items), "items": items}

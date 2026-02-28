@@ -48,7 +48,7 @@ def _utc_now_iso() -> str:
     Returns:
         str: Current UTC timestamp in ISO-8601 format.
     """
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 def get_conn() -> sqlite3.Connection:
@@ -75,6 +75,8 @@ def init_db() -> None:
     """
     conn = get_conn()
     cur = conn.cursor()
+    
+    
 
     cur.execute(
         """
@@ -91,6 +93,19 @@ def init_db() -> None:
         )
         """
     )
+    cur.execute(
+    """
+    CREATE TABLE IF NOT EXISTS review_decisions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        assessment_id TEXT NOT NULL,
+        decision TEXT NOT NULL,
+        reviewer TEXT NOT NULL,
+        notes TEXT,
+        decided_at TEXT NOT NULL,
+        FOREIGN KEY (assessment_id) REFERENCES assessments(assessment_id)
+    )
+    """
+)
 
     conn.commit()
     conn.close()
@@ -220,3 +235,89 @@ def get_assessment_response(assessment_id: str) -> Optional[Dict[str, Any]]:
         return None
 
     return json.loads(row["response_json"])
+
+def assessment_exists(assessment_id: str) -> bool:
+    """
+    Check whether an assessment exists in the audit log.
+    Used to avoid recording decisions for unknown ids.
+    """
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT 1 FROM assessments WHERE assessment_id = ? LIMIT 1",
+        (assessment_id,),
+    )
+    row = cur.fetchone()
+    conn.close()
+    return row is not None
+
+
+def save_review_decision(
+    *,
+    assessment_id: str,
+    decision: str,
+    reviewer: str,
+    notes: str | None,
+) -> Dict[str, Any]:
+    """
+    Save a human review decision for an assessment.
+
+    Returns a dict representing the stored decision record.
+    """
+    conn = get_conn()
+    cur = conn.cursor()
+
+    decided_at = _utc_now_iso()
+    cur.execute(
+        """
+        INSERT INTO review_decisions (
+            assessment_id, decision, reviewer, notes, decided_at
+        ) VALUES (?, ?, ?, ?, ?)
+        """,
+        (assessment_id, decision, reviewer, notes, decided_at),
+    )
+
+    conn.commit()
+    conn.close()
+
+    return {
+        "assessment_id": assessment_id,
+        "decision": decision,
+        "reviewer": reviewer,
+        "notes": notes,
+        "decided_at": decided_at,
+    }
+
+
+def list_review_decisions(assessment_id: str, limit: int = 20) -> List[Dict[str, Any]]:
+    """
+    List review decisions for an assessment, newest first.
+    """
+    conn = get_conn()
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        SELECT assessment_id, decision, reviewer, notes, decided_at
+        FROM review_decisions
+        WHERE assessment_id = ?
+        ORDER BY decided_at DESC
+        LIMIT ?
+        """,
+        (assessment_id, limit),
+    )
+
+    rows = []
+    for r in cur.fetchall():
+        rows.append(
+            {
+                "assessment_id": r["assessment_id"],
+                "decision": r["decision"],
+                "reviewer": r["reviewer"],
+                "notes": r["notes"],
+                "decided_at": r["decided_at"],
+            }
+        )
+
+    conn.close()
+    return rows

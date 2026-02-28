@@ -66,6 +66,24 @@ class HumanDecision(BaseModel):
     decision: str
     why: str
 
+class ReviewDecisionRequest(BaseModel):
+    """
+    Request body for recording a human decision on an assessment.
+    """
+    decision: Literal["approved", "rejected"]
+    reviewer: str = Field(..., min_length=1, max_length=120)
+    notes: Optional[str] = Field(default=None, max_length=2000)
+
+
+class ReviewDecision(BaseModel):
+    """
+    Stored decision record attached to an assessment.
+    """
+    assessment_id: str
+    decision: Literal["approved", "rejected"]
+    reviewer: str
+    notes: Optional[str] = None
+    decided_at: datetime
 
 class AssessResponse(BaseModel):
     """

@@ -64,3 +64,49 @@ export async function assessContent(payload: AssessRequest): Promise<AssessRespo
 
   return res.json();
 }
+
+export type ReviewDecisionRequest = {
+  decision: "approved" | "rejected";
+  reviewer: string;
+  notes?: string | null;
+};
+
+export type ReviewDecision = {
+  assessment_id: string;
+  decision: "approved" | "rejected";
+  reviewer: string;
+  notes?: string | null;
+  decided_at: string;
+};
+
+export async function recordDecision(
+  assessmentId: string,
+  payload: ReviewDecisionRequest
+): Promise<ReviewDecision> {
+  const res = await fetch(`${BACKEND_URL}/v1/assessments/${assessmentId}/decision`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Backend error ${res.status}: ${text}`);
+  }
+
+  return res.json();
+}
+
+export async function listDecisions(
+  assessmentId: string,
+  limit = 10
+): Promise<{ count: number; items: ReviewDecision[] }> {
+  const res = await fetch(`${BACKEND_URL}/v1/assessments/${assessmentId}/decisions?limit=${limit}`);
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Backend error ${res.status}: ${text}`);
+  }
+
+  return res.json();
+}

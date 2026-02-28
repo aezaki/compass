@@ -155,3 +155,56 @@ Verification:
 - UI successfully calls POST /v1/assess
 - Risk, rewrite, disclosures, and human boundary render correctly
 - LLM success and timeout scenarios handled gracefully
+
+## Step 6: Human decision logging (approve or reject)
+
+Goal:
+Add the human accountability layer by recording explicit reviewer decisions for assessments.
+
+Files updated:
+- backend/app/models.py (ReviewDecisionRequest, ReviewDecision)
+- backend/app/db.py (review_decisions table + persistence helpers)
+- backend/app/api.py (decision endpoints)
+
+Key functionality implemented:
+- POST /v1/assessments/{assessment_id}/decision
+  - Records approved or rejected, reviewer id, optional notes, UTC timestamp
+- GET /v1/assessments/{assessment_id}/decisions
+  - Returns decision history (newest first)
+
+Verification:
+- Successfully recorded and retrieved a rejected decision for an existing assessment.
+
+## Step 6.5: Frontend human review workflow
+
+Goal:
+Expose the human accountability layer in the UI so reviewers can approve or reject an assessment, add notes, and view decision history.
+
+Directories created:
+- frontend/components/ (if not already present)
+- frontend/lib/ (if not already present)
+
+Files created or updated:
+- Updated: frontend/lib/api.ts
+  - Added types and API helpers for:
+    - POST /v1/assessments/{assessment_id}/decision
+    - GET /v1/assessments/{assessment_id}/decisions
+- Created: frontend/components/ReviewPanel.tsx
+  - Reviewer input, decision dropdown, notes, submit button
+  - Decision history list (newest first)
+- Updated: frontend/components/AssessmentCard.tsx
+  - Embedded ReviewPanel at the bottom of the assessment results card
+
+Key functionality implemented:
+- After generating an assessment, the UI allows a reviewer to record:
+  - approved or rejected decision
+  - reviewer identifier
+  - optional notes
+- The UI fetches and displays decision history for the selected assessment.
+- Workflow reinforces the explicit human boundary:
+  AI may recommend, but a human owns release decisions for high-risk content.
+
+Verification:
+- Human review panel renders after an assessment is generated.
+- Saving a decision persists to SQLite via backend endpoint.
+- Decision history is retrievable and displays correctly in the UI.

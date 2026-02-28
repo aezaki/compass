@@ -7,6 +7,7 @@
  */
 
 import type { AssessResponse } from "@/lib/api";
+import ReviewPanel from "@/components/ReviewPanel";
 
 function riskBadgeClass(risk: AssessResponse["risk_level"]) {
   if (risk === "HIGH") return "bg-red-100 text-red-800 border-red-200";
@@ -98,6 +99,8 @@ export default function AssessmentCard({ data }: { data: AssessResponse }) {
         <div className="text-sm font-semibold text-gray-900">What breaks first at scale</div>
         <div className="mt-1 text-sm text-gray-700">{data.what_breaks_first_at_scale}</div>
       </div>
+
+      <ReviewPanel assessmentId={data.assessment_id} />
     </div>
   );
 }
