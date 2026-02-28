@@ -18,6 +18,7 @@ It serves as a deterministic safety baseline.
 import uuid
 from datetime import datetime, timezone
 from .policy import load_policy_pack
+from .llm import call_llm_assess, llm_enabled
 
 
 def assess_text(content: str, policy_pack: str, channel: str, jurisdiction: str):
@@ -94,24 +95,85 @@ def assess_text(content: str, policy_pack: str, channel: str, jurisdiction: str)
 
     # Simple rewrite strategy (placeholder)
     suggested_rewrite = None
+
+    # For prohibited claims, return a conservative rewrite template.
+    # We are not trying to be legally perfect here, we are trying to be:
+    # - safer than the original
+    # - clean and readable for demo purposes
     if prohibited_hits:
-        suggested_rewrite = content
-        for term in prohibited_hits:
-            suggested_rewrite = (
-                suggested_rewrite
-                .replace(term, "")
-                .replace(term.title(), "")
-            )
+        suggested_rewrite = (
+            "Returns are not guaranteed. Investing involves risk, including the possible loss of principal. "
+            "Avoid absolute language such as 'guaranteed' or 'zero risk'."
+        )
+        
+        # Optional LLM augmentation (never authoritative)
+    llm_payload = None
+    llm_error = None
+    used_llm = False
+
+    if llm_enabled():
+        llm_payload, llm_error = call_llm_assess(
+            content=content,
+            channel=channel,
+            jurisdiction=jurisdiction,
+            policy_pack=policy_pack,
+            prohibited_terms=rules.get("prohibited_terms", []),
+            risky_terms=rules.get("risky_terms", []),
+        )
+        used_llm = llm_payload is not None
+
+    # Merge strategy:
+    # - Rules remain authoritative for prohibited terms and escalation.
+    # - We may union tags and improve rewrite and reasoning.
+    final_tags = set(tags)
+    final_risk_level = risk_level
+    final_reasoning = " ".join(reasoning_parts)
+    final_rewrite = suggested_rewrite
+
+    if used_llm:
+        # Union tags
+        for t in llm_payload.get("tags", []):
+            if isinstance(t, str) and t.strip():
+                final_tags.add(t.strip())
+
+        # Risk level can only increase, never decrease below rules
+        llm_risk = llm_payload.get("risk_level")
+        risk_rank = {"LOW": 0, "MEDIUM": 1, "HIGH": 2}
+        if llm_risk in risk_rank and risk_rank[llm_risk] > risk_rank[final_risk_level]:
+            final_risk_level = llm_risk
+
+        # Prefer LLM rewrite when rules were not prohibited-only template or when LLM is cleaner
+        llm_rewrite = llm_payload.get("suggested_rewrite")
+        if isinstance(llm_rewrite, str) and llm_rewrite.strip():
+            final_rewrite = llm_rewrite.strip()
+
+        # Prefer LLM reasoning if present
+        llm_reason = llm_payload.get("reasoning_summary")
+        if isinstance(llm_reason, str) and llm_reason.strip():
+            final_reasoning = llm_reason.strip()
+
+    # Re-attach disclosures based on final tags
+    required_disclosures = []
+    disclosure_map = disclosures_cfg.get("disclosures", {})
+    for tag in sorted(final_tags):
+        for disclosure in disclosure_map.get(tag, []):
+            required_disclosures.append(disclosure)
+
+    # Escalation remains rules-driven, plus any HIGH risk
+    escalation_required = escalation_required or (final_risk_level == "HIGH")
 
     return {
         "assessment_id": str(uuid.uuid4()),
         "policy_pack": policy_pack,
         "jurisdiction": jurisdiction,
         "input_channel": channel,
-        "risk_level": risk_level,
-        "tags": sorted(tags),
+        "assessment_mode": "rules_plus_llm" if used_llm else "rules_only",
+        "llm_used": used_llm,
+        "llm_error": llm_error,
+        "risk_level": final_risk_level,
+        "tags": sorted(final_tags),
         "required_disclosures": required_disclosures,
-        "suggested_rewrite": suggested_rewrite.strip() if suggested_rewrite else None,
+        "suggested_rewrite": final_rewrite.strip() if final_rewrite else None,
         "ai_responsibility": [
             "Identify risky claims and categorize them",
             "Generate required disclosures",
@@ -122,7 +184,7 @@ def assess_text(content: str, policy_pack: str, channel: str, jurisdiction: str)
             "why": "Regulatory interpretation creates legal liability and requires accountable human judgment."
         },
         "escalation_required": escalation_required,
-        "reasoning_summary": " ".join(reasoning_parts),
+        "reasoning_summary": final_reasoning,
         "what_breaks_first_at_scale": "Regulatory drift and policy version skew without strict policy ownership and versioning.",
-        "created_at": datetime.now(timezone.utc)
+        "created_at": datetime.now(timezone.utc).isoformat()
     }

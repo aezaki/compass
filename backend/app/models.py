@@ -22,6 +22,8 @@ Channel = Literal["marketing", "product", "support"]
 # Allowed compliance risk levels
 RiskLevel = Literal["LOW", "MEDIUM", "HIGH"]
 
+AssessmentMode = Literal["rules_only", "rules_plus_llm"]
+
 
 class AssessContext(BaseModel):
     """
@@ -88,3 +90,6 @@ class AssessResponse(BaseModel):
     reasoning_summary: str
     what_breaks_first_at_scale: str
     created_at: datetime
+    assessment_mode: AssessmentMode
+    llm_used: bool
+    llm_error: Optional[str] = None

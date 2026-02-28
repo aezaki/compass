@@ -6,21 +6,35 @@ This module initializes the FastAPI application and registers API routes.
 Purpose:
 - Define the application metadata
 - Register route modules
-- Later: initialize shared infrastructure such as database connections
+- Initialize shared infrastructure at startup (audit DB)
 
-This file should remain thin and orchestration-focused.
+This file should remain orchestration-focused.
 Business logic belongs in service modules.
 """
+from dotenv import load_dotenv
+load_dotenv()
 
 from fastapi import FastAPI
 from .api import router
+from .db import init_db
 
-# Instantiate FastAPI application with metadata
+
 app = FastAPI(
     title="Compass",
     version="0.1.0",
     description="AI-native Compliance Operating System prototype"
 )
 
-# Register API routes
+
+@app.on_event("startup")
+def on_startup() -> None:
+    """
+    Application startup hook.
+
+    Initializes the audit database so the system always has a place to log
+    assessments. This supports traceability even in the prototype stage.
+    """
+    init_db()
+
+
 app.include_router(router)
