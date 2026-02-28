@@ -41,7 +41,7 @@ class AssessmentRow:
     input_channel: str
     risk_level: str
     tags: List[str]
-
+    input_excerpt: str
 
 def _utc_now_iso() -> str:
     """
@@ -188,7 +188,7 @@ def list_recent_assessments(limit: int = 25) -> List[AssessmentRow]:
 
     cur.execute(
         """
-        SELECT assessment_id, created_at, policy_pack, jurisdiction, input_channel, risk_level, tags_json
+        SELECT assessment_id, created_at, policy_pack, jurisdiction, input_channel, risk_level, tags_json, input_text
         FROM assessments
         ORDER BY created_at DESC
         LIMIT ?
@@ -207,6 +207,7 @@ def list_recent_assessments(limit: int = 25) -> List[AssessmentRow]:
                 input_channel=r["input_channel"],
                 risk_level=r["risk_level"],
                 tags=json.loads(r["tags_json"]),
+                input_excerpt=(r["input_text"] or "")[:80],
             )
         )
 

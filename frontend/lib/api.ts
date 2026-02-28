@@ -110,3 +110,36 @@ export async function listDecisions(
 
   return res.json();
 }
+
+export type AssessmentSummary = {
+  assessment_id: string;
+  created_at: string;
+  policy_pack: string;
+  jurisdiction: string;
+  input_channel: Channel;
+  risk_level: "LOW" | "MEDIUM" | "HIGH";
+  tags: string[];
+  input_excerpt: string;
+};
+
+export async function listRecentAssessments(limit = 20): Promise<{ count: number; items: AssessmentSummary[] }> {
+  const res = await fetch(`${BACKEND_URL}/v1/assessments?limit=${limit}`);
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Backend error ${res.status}: ${text}`);
+  }
+
+  return res.json();
+}
+
+export async function getAssessmentById(assessmentId: string): Promise<AssessResponse> {
+  const res = await fetch(`${BACKEND_URL}/v1/assessments/${assessmentId}`);
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Backend error ${res.status}: ${text}`);
+  }
+
+  return res.json();
+}

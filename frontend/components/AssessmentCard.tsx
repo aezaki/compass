@@ -15,11 +15,33 @@ function riskBadgeClass(risk: AssessResponse["risk_level"]) {
   return "bg-green-100 text-green-800 border-green-200";
 }
 
-export default function AssessmentCard({ data }: { data: AssessResponse }) {
+export default function AssessmentCard({
+  data,
+  onClose,
+}: {
+  data: AssessResponse;
+  onClose?: () => void;
+}) {
   return (
-    <div className="w-full rounded-xl border bg-white p-5 shadow-sm">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className={`inline-flex items-center rounded-full border px-3 py-1 text-sm font-semibold ${riskBadgeClass(data.risk_level)}`}>
+    <div className="relative w-full rounded-xl border bg-white p-5 shadow-sm">
+      {onClose ? (
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute right-4 top-4 rounded-md p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+          aria-label="Close assessment"
+          title="Close"
+        >
+          ✕
+        </button>
+      ) : null}
+
+      <div className="flex flex-wrap items-center gap-2 pr-8">
+        <span
+          className={`inline-flex items-center rounded-full border px-3 py-1 text-sm font-semibold ${riskBadgeClass(
+            data.risk_level
+          )}`}
+        >
           Risk: {data.risk_level}
         </span>
 

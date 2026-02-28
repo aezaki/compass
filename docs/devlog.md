@@ -208,3 +208,46 @@ Verification:
 - Human review panel renders after an assessment is generated.
 - Saving a decision persists to SQLite via backend endpoint.
 - Decision history is retrievable and displays correctly in the UI.
+
+## Step 7: Recent assessments sidebar
+
+Goal:
+Make the frontend feel like an operator tool by allowing users to browse and reopen prior assessments from the audit log.
+
+Backend updates:
+- Extended GET /v1/assessments to include input_excerpt for readable list display.
+
+Frontend updates:
+- Created RecentAssessments sidebar that lists recent assessment summaries.
+- Clicking an item loads full assessment details via GET /v1/assessments/{assessment_id}.
+- After creating a new assessment, the sidebar refreshes so the new item appears.
+
+Verification:
+- Sidebar loads recent items and shows risk, tags, timestamp, and excerpt.
+- Selecting an item loads the full stored assessment and renders the review workflow.
+
+## Step 7.5: Assessment view dismiss control
+
+Goal:
+Improve operator ergonomics by allowing users to explicitly close the active assessment view without resetting the entire page.
+
+Frontend updates:
+- Updated AssessmentCard to support an optional `onClose` callback.
+- Converted card container to `relative` positioning.
+- Added absolute-positioned close control in the top-right corner.
+- Replaced inline button with minimal "✕" dismiss control for cleaner UX.
+- Ensured closing an assessment:
+  - Clears current `result`
+  - Clears `selectedId`
+  - Leaves form state and sidebar intact
+
+Design rationale:
+This reinforces the concept that an assessment is a discrete, reviewable object in a workflow. Operators can open, review, dismiss, and move between assessments without disrupting context.
+
+Verification:
+- Load assessment
+- Click close
+- Card disappears
+- Sidebar remains
+- Form remains usable
+
