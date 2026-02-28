@@ -18,11 +18,25 @@ from fastapi import FastAPI
 from .api import router
 from .db import init_db
 
+from fastapi.middleware.cors import CORSMiddleware
+
 
 app = FastAPI(
     title="Compass",
     version="0.1.0",
     description="AI-native Compliance Operating System prototype"
+)
+
+# Allow the Next.js dev server to call the API in the browser.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3001",
+        "http://127.0.0.1:3001",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 

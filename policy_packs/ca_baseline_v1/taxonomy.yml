@@ -9,3 +9,5 @@ tags:
     description: "Claims implying safety, security, or lack of risk."
   Superlatives:
     description: "Unqualified best-in-class claims."
+  ProhibitedGuarantees:
+    description: "Absolute guarantees about returns or outcomes, generally prohibited in financial marketing."

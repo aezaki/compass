@@ -137,3 +137,21 @@ Verification:
 - Low-risk input returns MEDIUM with interest disclosure and clean rewrite
 - Audit endpoints list recent assessments and can retrieve full stored payload
 
+## Step 5: End-to-end demo UI
+
+Goal:
+Provide a minimal interface to demonstrate the system operating in real time.
+
+Files created:
+- frontend/lib/api.ts
+- frontend/components/AssessmentCard.tsx
+- Updated: frontend/app/page.tsx
+
+Backend updates:
+- Enabled CORS middleware for local development
+- Confirmed LLM fallback behavior is surfaced in API response
+
+Verification:
+- UI successfully calls POST /v1/assess
+- Risk, rewrite, disclosures, and human boundary render correctly
+- LLM success and timeout scenarios handled gracefully
