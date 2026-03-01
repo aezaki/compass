@@ -6,16 +6,25 @@
  * Purpose:
  * - Show a readable list of recent assessments from the audit log.
  * - Allow selecting an assessment to load full details.
+ * - Display lifecycle status at a glance (pending, approved, rejected).
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { AssessmentSummary } from "@/lib/api";
-import { listRecentAssessments } from "@/lib/api";
+import { listRecentAssessments, listDecisions } from "@/lib/api";
 
-function badgeClass(risk: AssessmentSummary["risk_level"]) {
+type DecisionStatus = "pending" | "approved" | "rejected";
+
+function riskBadgeClass(risk: AssessmentSummary["risk_level"]) {
   if (risk === "HIGH") return "bg-red-100 text-red-800 border-red-200";
   if (risk === "MEDIUM") return "bg-yellow-100 text-yellow-800 border-yellow-200";
   return "bg-green-100 text-green-800 border-green-200";
+}
+
+function dotClass(status: DecisionStatus) {
+  if (status === "approved") return "bg-green-500";
+  if (status === "rejected") return "bg-red-500";
+  return "bg-gray-400";
 }
 
 export default function RecentAssessments({
@@ -31,6 +40,9 @@ export default function RecentAssessments({
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // Map assessment_id -> decision status
+  const [decisionMap, setDecisionMap] = useState<Record<string, DecisionStatus>>({});
+
   async function load() {
     setErr(null);
     setLoading(true);
@@ -44,9 +56,47 @@ export default function RecentAssessments({
     }
   }
 
+  // Load list on refresh
   useEffect(() => {
     load();
   }, [refreshKey]);
+
+  // Fetch latest decision status for visible items (demo-friendly N calls)
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadDecisionStatuses() {
+      const next: Record<string, DecisionStatus> = {};
+
+      await Promise.all(
+        items.map(async (a) => {
+          try {
+            const res = await listDecisions(a.assessment_id, 1);
+            if (res.count > 0) {
+              const latest = res.items[0]?.decision;
+              if (latest === "approved") next[a.assessment_id] = "approved";
+              else if (latest === "rejected") next[a.assessment_id] = "rejected";
+              else next[a.assessment_id] = "pending";
+            } else {
+              next[a.assessment_id] = "pending";
+            }
+          } catch {
+            next[a.assessment_id] = "pending";
+          }
+        })
+      );
+
+      if (!cancelled) setDecisionMap(next);
+    }
+
+    if (items.length > 0) loadDecisionStatuses();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [items]);
+
+  const countLabel = useMemo(() => items.length, [items.length]);
 
   return (
     <div className="rounded-xl border bg-white p-4 shadow-sm">
@@ -62,7 +112,7 @@ export default function RecentAssessments({
       </div>
 
       <div className="mt-1 text-xs text-gray-600">
-        Select an assessment to load details and review decisions.
+        {countLabel} items. Select an assessment to load details and review decisions.
       </div>
 
       {err ? <div className="mt-3 text-sm text-red-700">{err}</div> : null}
@@ -72,6 +122,8 @@ export default function RecentAssessments({
         <ul className="space-y-2">
           {items.map((a) => {
             const isSelected = selectedId === a.assessment_id;
+            const status: DecisionStatus = decisionMap[a.assessment_id] ?? "pending";
+
             return (
               <li key={a.assessment_id}>
                 <button
@@ -83,13 +135,27 @@ export default function RecentAssessments({
                   ].join(" ")}
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold ${badgeClass(a.risk_level)}`}>
-                      {a.risk_level}
-                    </span>
-                    <span className="text-[11px] text-gray-500">{a.created_at}</span>
+                    <div className="flex items-center gap-2">
+                      {/* Lifecycle dot */}
+                      <span
+                        className={`h-2.5 w-2.5 rounded-full ${dotClass(status)}`}
+                        title={`Decision: ${status}`}
+                        aria-label={`Decision: ${status}`}
+                      />
+
+                      <span
+                        className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold ${riskBadgeClass(
+                          a.risk_level
+                        )}`}
+                      >
+                        {a.risk_level}
+                      </span>
+                    </div>
+
+                    <span className="text-[11px] text-gray-400">{a.created_at}</span>
                   </div>
 
-                  <div className="mt-2 text-xs text-gray-600">
+                  <div className="mt-2 text-[11px] text-gray-400">
                     {a.policy_pack} | {a.jurisdiction} | {a.input_channel}
                   </div>
 
@@ -102,7 +168,7 @@ export default function RecentAssessments({
                       </span>
                     ))}
                     {a.tags.length > 3 ? (
-                      <span className="text-[11px] text-gray-500">+{a.tags.length - 3} more</span>
+                      <span className="text-[11px] text-gray-400">+{a.tags.length - 3} more</span>
                     ) : null}
                   </div>
                 </button>

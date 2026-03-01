@@ -6,13 +6,27 @@
  * - Keep rendering separate from form and state logic.
  */
 
+import { useEffect, useState } from "react";
 import type { AssessResponse } from "@/lib/api";
+import { listDecisions } from "@/lib/api";
 import ReviewPanel from "@/components/ReviewPanel";
 
 function riskBadgeClass(risk: AssessResponse["risk_level"]) {
   if (risk === "HIGH") return "bg-red-100 text-red-800 border-red-200";
   if (risk === "MEDIUM") return "bg-yellow-100 text-yellow-800 border-yellow-200";
   return "bg-green-100 text-green-800 border-green-200";
+}
+
+type DecisionStatus = "pending" | "approved" | "rejected";
+
+function decisionBadgeClass(status: DecisionStatus) {
+  if (status === "approved") return "bg-green-100 text-green-800 border-green-200";
+  if (status === "rejected") return "bg-red-100 text-red-800 border-red-200";
+  return "bg-gray-100 text-gray-800 border-gray-200";
+}
+
+function formatDecisionLabel(status: DecisionStatus) {
+  return status.toUpperCase();
 }
 
 export default function AssessmentCard({
@@ -22,6 +36,37 @@ export default function AssessmentCard({
   data: AssessResponse;
   onClose?: () => void;
 }) {
+  const [decisionStatus, setDecisionStatus] = useState<DecisionStatus>("pending");
+  const [decisionRefreshKey, setDecisionRefreshKey] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadDecisionStatus() {
+      try {
+        const res = await listDecisions(data.assessment_id, 1);
+        if (cancelled) return;
+
+        if (res.count > 0) {
+          const latest = res.items[0]?.decision;
+          if (latest === "approved") setDecisionStatus("approved");
+          else if (latest === "rejected") setDecisionStatus("rejected");
+          else setDecisionStatus("pending");
+        } else {
+          setDecisionStatus("pending");
+        }
+      } catch {
+        if (!cancelled) setDecisionStatus("pending");
+      }
+    }
+
+    loadDecisionStatus();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [data.assessment_id, decisionRefreshKey]);
+
   return (
     <div className="relative w-full rounded-xl border bg-white p-5 shadow-sm">
       {onClose ? (
@@ -37,6 +82,15 @@ export default function AssessmentCard({
       ) : null}
 
       <div className="flex flex-wrap items-center gap-2 pr-8">
+        {/* Lifecycle first, classification second */}
+        <span
+          className={`inline-flex items-center rounded-full border px-3 py-1 text-sm font-semibold ${decisionBadgeClass(
+            decisionStatus
+          )}`}
+        >
+          Decision: {formatDecisionLabel(decisionStatus)}
+        </span>
+
         <span
           className={`inline-flex items-center rounded-full border px-3 py-1 text-sm font-semibold ${riskBadgeClass(
             data.risk_level
@@ -55,11 +109,12 @@ export default function AssessmentCard({
           </span>
         )}
 
-        <span className="text-xs text-gray-500">
+        {/* De-emphasized metadata */}
+        <span className="text-[11px] text-gray-400">
           Policy: {data.policy_pack} | Jurisdiction: {data.jurisdiction} | Channel: {data.input_channel}
         </span>
 
-        <span className="text-xs text-gray-500">
+        <span className="text-[11px] text-gray-400">
           Mode: {data.assessment_mode ?? "unknown"} | LLM used: {String(data.llm_used ?? false)}
         </span>
       </div>
@@ -71,6 +126,7 @@ export default function AssessmentCard({
         </div>
       ) : null}
 
+      {/* AI output section */}
       <div className="mt-4">
         <div className="text-sm font-semibold text-gray-900">Reasoning</div>
         <div className="mt-1 text-sm text-gray-700">{data.reasoning_summary}</div>
@@ -112,17 +168,21 @@ export default function AssessmentCard({
       </div>
 
       <div className="mt-4">
-        <div className="text-sm font-semibold text-gray-900">Human stop boundary</div>
-        <div className="mt-1 text-sm text-gray-700">{data.human_must_decide.decision}</div>
-        <div className="mt-1 text-sm text-gray-600">{data.human_must_decide.why}</div>
-      </div>
-
-      <div className="mt-4">
         <div className="text-sm font-semibold text-gray-900">What breaks first at scale</div>
         <div className="mt-1 text-sm text-gray-700">{data.what_breaks_first_at_scale}</div>
       </div>
 
-      <ReviewPanel assessmentId={data.assessment_id} />
+      {/* Human responsibility section (explicit boundary) */}
+      <div className="mt-6 border-t pt-6">
+        <div className="text-sm font-semibold text-gray-900">Human stop boundary</div>
+        <div className="mt-1 text-sm text-gray-700">{data.human_must_decide.decision}</div>
+        <div className="mt-1 text-sm text-gray-600">{data.human_must_decide.why}</div>
+
+        <ReviewPanel
+          assessmentId={data.assessment_id}
+          onDecisionSaved={() => setDecisionRefreshKey((x) => x + 1)}
+        />
+      </div>
     </div>
   );
 }

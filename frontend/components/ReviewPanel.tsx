@@ -11,7 +11,13 @@
 import { useEffect, useState } from "react";
 import { listDecisions, recordDecision, type ReviewDecision } from "@/lib/api";
 
-export default function ReviewPanel({ assessmentId }: { assessmentId: string }) {
+export default function ReviewPanel({
+  assessmentId,
+  onDecisionSaved,
+}: {
+  assessmentId: string;
+  onDecisionSaved?: () => void;
+}) {
   const [reviewer, setReviewer] = useState("andrew.zaki");
   const [decision, setDecision] = useState<"approved" | "rejected">("rejected");
   const [notes, setNotes] = useState("Contains absolute guarantees. Reject and request rewrite + disclosures.");
@@ -43,6 +49,7 @@ export default function ReviewPanel({ assessmentId }: { assessmentId: string }) 
       });
       setMsg("Decision saved.");
       await refresh();
+      onDecisionSaved?.();
     } catch (e: any) {
       setErr(e?.message ?? "Failed to save decision");
     } finally {
