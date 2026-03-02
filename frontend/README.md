@@ -1,36 +1,104 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Compass
+AI-native Compliance Operating System
 
-## Getting Started
+Compass reimagines how regulated content is reviewed by rebuilding compliance workflows as AI-native systems rather than layering AI onto legacy processes.
 
-First, run the development server:
+Instead of relying on manual checklists and static documentation, Compass combines a deterministic rules engine with structured LLM reasoning to classify regulatory risk, generate compliant rewrites, attach required disclosures, and persist auditable human decisions.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+This project was built as a demonstration of end-to-end AI-assisted workflow redesign in regulated environments.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Core Idea
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Traditional compliance review workflows evolved before modern AI existed. Compass redesigns the workflow from scratch:
 
-## Learn More
+- AI assumes cognitive responsibility for classification and drafting.
+- Humans retain legal accountability for release decisions.
+- Every assessment and decision is logged for auditability.
+- Lifecycle state is visible at a glance.
 
-To learn more about Next.js, take a look at the following resources:
+This is not an AI wrapper. It is an AI-native operating model.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Architecture Overview
 
-## Deploy on Vercel
+### Backend
+- **FastAPI** for API layer
+- **SQLite** for persistence and audit logging
+- Deterministic rules engine for policy evaluation
+- Optional LLM augmentation via OpenAI API
+- Structured JSON responses for explainability
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Frontend
+- **Next.js + React**
+- Tailwind CSS for clean operator-focused UI
+- Lifecycle-aware sidebar with decision status indicators
+- Explicit human review panel with persisted decisions
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+## Key Capabilities
+
+- Risk classification (LOW / MEDIUM / HIGH)
+- Rules-first policy pack architecture
+- LLM-assisted reasoning and rewrite generation
+- Required disclosure generation
+- Explicit human stop boundary
+- Persisted audit trail of:
+  - Assessments
+  - Risk tags
+  - Rewrites
+  - Human approval / rejection decisions
+- Decision lifecycle visualization
+
+---
+
+## Workflow Model
+
+1. User submits regulated content.
+2. System evaluates via deterministic rules.
+3. Optional LLM augments reasoning and rewrite suggestions.
+4. High-risk assessments require human review.
+5. Human decision is logged with reviewer + notes.
+6. Lifecycle status updates in real time.
+
+---
+
+## What Breaks First at Scale
+
+- Regulatory drift
+- Policy version skew
+- Inconsistent interpretation across jurisdictions
+
+Compass is structured to support policy pack versioning and clear decision traceability to mitigate these risks.
+
+---
+
+## Tech Stack
+
+Backend:
+- Python
+- FastAPI
+- SQLite
+- OpenAI API
+
+Frontend:
+- Next.js
+- React
+- Tailwind CSS
+
+---
+
+## Why This Matters
+
+Responsible AI deployment in regulated environments requires:
+
+- Clear accountability boundaries
+- Deterministic fallbacks
+- Explainability
+- Auditability
+- Human oversight
+
+Compass demonstrates a practical implementation of those principles.
